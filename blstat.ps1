@@ -10,7 +10,7 @@
     # NEED TO WORK ON: errors.txt   - Lists devices we could not get bitlocker status from and why
     missing.txt  - Lists only the devices from errors.txt that can be imported with the -file parameter.
     results.csv  - csv file with the device name, bitlocker encryption method, and date. 
-    file.jpg     - screenshots of each device bitlocker status to be used for evidence.
+    file.png     - screenshots of each device bitlocker status to be used for evidence.
 
     List of location codes:
     "ALB","ANT","AUG","AUR","AYA","BAC","BAG","BCR","BOS",
@@ -85,12 +85,18 @@
 #>
 
 #Set script params
+using namespace System.Drawing
+using namespace System.Windows.Forms
+
 param(
     [String]$filtervlan,
     $filterdevice, 
     $file, 
     [switch]$nodhcp
 )
+
+Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
 
 #instantiate script variables
 $cred = get-credential
@@ -172,13 +178,9 @@ function Export-Png
     }
     End
     {
- #       using namespace System.Drawing
- #       using namespace System.Windows.Forms
-        Add-Type –AssemblyName System.Drawing
-        Add-Type –AssemblyName System.Windows.Forms
         [string]$lines = $lines -join "`n"
         [Bitmap]$bmpImage = [Bitmap]::new(1, 1)
-        [Font]$font = [Font]::new("[FontFamily]::GenericMonospace", 16, [FontStyle]::Regular, [GraphicsUnit]::Pixel)
+        [Font]$font = [Font]::new([FontFamily]::GenericMonospace, 16, [FontStyle]::Regular, [GraphicsUnit]::Pixel)
         [Graphics]$Graphics = [Graphics]::FromImage($BmpImage)
         [int]$width  = $Graphics.MeasureString($lines, $Font).Width
         [int]$height = $Graphics.MeasureString($lines, $Font).Height
@@ -188,9 +190,8 @@ function Export-Png
         $Graphics.Clear([Color]::FromArgb(1, 36, 86))
         $Graphics.SmoothingMode = [Drawing2D.SmoothingMode]::Default
         $Graphics.TextRenderingHint = [Text.TextRenderingHint]::SystemDefault
-        $Graphics.TextRenderingHint = [Text.TextRenderingHint]::ClearTypeGridFit
+        #$Graphics.TextRenderingHint = [Text.TextRenderingHint]::ClearTypeGridFit
         $brushColour = [SolidBrush]::new([Color]::FromArgb(238, 237, 240))
-        $lines
         $Graphics.DrawString($lines, $Font, $brushColour, 0, 0)
         $Graphics.Flush()
         if ($Path)
@@ -256,7 +257,8 @@ else
 if ($nodhcp -eq $false)
 {
     #get dhcp server IPAddress & verify
-    $dhcpserver = ((Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "DHCPEnabled=$true" | Select DHCPServer -ExpandProperty DHCPServer) -as [IPAddress]).IPAddressToString
+    #$dhcpserver = ((Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "DHCPEnabled=$true" | Select DHCPServer -ExpandProperty DHCPServer) -as [IPAddress]).IPAddressToString
+    $dhcpserver = ((Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "DHCPEnabled=$true" | Select DHCPServer -ExpandProperty DHCPServer)[0])
 
     #use dhcp server IP to filter your dhcp server from list of dhcp servers in domain, set var, verify
     $dnsname = Get-DhcpServerInDC -ErrorAction stop | where-object {$_.IPAddress -like "$dhcpserver"} | select DnsName -ExpandProperty DnsName
